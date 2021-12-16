@@ -1,10 +1,8 @@
 pragma solidity 0.8.7;
 
 library SafeMath{
-    uint internal result = 0;
-
     function add(uint a, uint b) internal pure returns(uint){
-        result = a + b;
+        uint result = a + b;
 
         require(result >= a, "Sum overflow!");
 
@@ -12,7 +10,7 @@ library SafeMath{
     }
 
     function sub(uint a, uint b) internal pure returns(uint){
-        result = a - b;
+        uint result = a - b;
 
         require(result <= a, "Subtract underflow!");
 
@@ -24,7 +22,7 @@ library SafeMath{
             return 0;
         }
 
-        result = a * b;
+        uint result = a * b;
 
         require(result / a == b, "Multiply overflow!");
 
@@ -38,7 +36,7 @@ library SafeMath{
 
         require(b != 0, "Division by zero!");
 
-        result = a / b;
+        uint result = a / b;
 
         return result;
     }
@@ -49,12 +47,12 @@ contract Ownable {
 
     event OwnershipTransferred(address newOwner);
 
-    constructor() public {
-        owner = msg.sender;
+    constructor() {
+        owner = payable(msg.sender);
     }
 
     modifier ownerOnly(){
-        require(msg.sender == owner, "Not the owner!");
+        require(payable(msg.sender) == owner, "Not the owner!");
         _;
     }
 
@@ -65,13 +63,13 @@ contract Ownable {
     }
 }
 
-contract ERC20 {
-    function totalSupply() public view returns (uint);
-    function balanceOf(address tokenOwner) public view returns (uint balance);
-    function allowance(address tokenOwner, address spender) public view returns (uint remaining);
-    function transfer(address to, uint tokens) public returns (bool success);
-    function approve(address spender, uint tokens) public returns (bool success);
-    function transferFrom(address from, address to, uint tokens) public returns (bool success);
+abstract contract ERC20 {
+    function totalSupply() public virtual view returns (uint);
+    function balanceOf(address tokenOwner) public virtual view returns (uint balance);
+    function allowance(address tokenOwner, address spender) public virtual view returns (uint remaining);
+    function transfer(address to, uint tokens) public virtual returns (bool success);
+    function approve(address spender, uint tokens) public virtual returns (bool success);
+    function transferFrom(address from, address to, uint tokens) public virtual returns (bool success);
 
     event Transfer(address indexed from, address indexed to, uint tokens);
     event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
@@ -80,25 +78,23 @@ contract ERC20 {
 contract BasicToken is Ownable, ERC20 {
     using SafeMath for uint;
 
-    uint public constant _totalSupply;
-    mapping(address => uint) _balances;
-    mapping(address => mapping(address => uint)) _allowed;
-
-    event Transfer(address indexed from, address indexed to, uint tokens);
+    uint internal _totalSupply;
+    mapping(address => uint) internal _balances;
+    mapping(address => mapping(address => uint)) internal _allowed;
     
-    function totalSupply() public view returns (uint){
+    function totalSupply() public override view returns (uint){
         return _totalSupply;
     }
 
-    function balanceOf(address tokenOwner) public view returns (uint balance){
+    function balanceOf(address tokenOwner) public override view returns (uint balance){
         return _balances[tokenOwner];
     }
 
-    function allowance(address tokenOwner, address spender) public view returns (uint remaining){
+    function allowance(address tokenOwner, address spender) public override view returns (uint remaining){
         return _allowed[tokenOwner][spender];
     }
 
-    function transfer(address to, uint tokens) public returns (bool success){
+    function transfer(address to, uint tokens) public override returns (bool success){
         require(_balances[msg.sender] >= tokens);
         require(to != address(0));
 
@@ -110,7 +106,7 @@ contract BasicToken is Ownable, ERC20 {
         return true;
     }
 
-    function approve(address spender, uint tokens) public returns (bool success){
+    function approve(address spender, uint tokens) public override returns (bool success){
         _allowed[msg.sender][spender] = tokens;
 
         emit Approval(msg.sender, spender, tokens);
@@ -118,7 +114,8 @@ contract BasicToken is Ownable, ERC20 {
         return true;
     }
     
-    function transferFrom(address from, address to, uint tokens) public returns (bool success){
+    function transferFrom(address from, address to, uint tokens) public override returns (bool success){
+        require(_allowed[from][msg.sender] >= tokens);
         require(_balances[from] >= tokens);
         require(to != address(0));
 
@@ -133,17 +130,21 @@ contract BasicToken is Ownable, ERC20 {
     }
 }
 
-contract MintableToken is BasicToken{
-    string public constant _name = "TCoin";
-    string public constant _symbol = "TCN";
-    uint8 public constant _decimals = 18;
+contract MintableToken is BasicToken {
+    using SafeMath for uint;
 
     event Mint(address indexed to, uint tokens);
 
-    function mint(address to, uint tokens) onlyOwner public {
-        balances[to] = balances[to].add(tokens);
+    function mint(address to, uint tokens) ownerOnly public {
+        _balances[to] = _balances[to].add(tokens);
         _totalSupply = _totalSupply.add(tokens);
 
         emit Mint(to, tokens);
     }
+}
+
+contract TCoin is MintableToken {
+    string public constant _name = "TCoin";
+    string public constant _symbol = "TCN";
+    uint8 public constant _decimals = 18;
 }
