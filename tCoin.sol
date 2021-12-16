@@ -77,34 +77,73 @@ contract ERC20 {
     event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
 }
 
-contract TCoin is Ownable {
+contract BasicToken is Ownable, ERC20 {
     using SafeMath for uint;
 
-    string public constant name = "TCoin";
-    string public constant symbol = "TCN";
-    uint8 public constant decimals = 18;
-    uint public constant totalSupply;
+    uint public constant _totalSupply;
+    mapping(address => uint) _balances;
+    mapping(address => mapping(address => uint)) _allowed;
 
-    mapping(address => uint) balances;
+    event Transfer(address indexed from, address indexed to, uint tokens);
+    
+    function totalSupply() public view returns (uint){
+        return _totalSupply;
+    }
+
+    function balanceOf(address tokenOwner) public view returns (uint balance){
+        return _balances[tokenOwner];
+    }
+
+    function allowance(address tokenOwner, address spender) public view returns (uint remaining){
+        return _allowed[tokenOwner][spender];
+    }
+
+    function transfer(address to, uint tokens) public returns (bool success){
+        require(_balances[msg.sender] >= tokens);
+        require(to != address(0));
+
+        _balances[msg.sender] = _balances[msg.sender].sub(tokens);
+        _balances[to] = _balances[to].add(tokens);
+
+        emit Transfer(msg.sender, to, tokens);
+
+        return true;
+    }
+
+    function approve(address spender, uint tokens) public returns (bool success){
+        _allowed[msg.sender][spender] = tokens;
+
+        emit Approval(msg.sender, spender, tokens);
+
+        return true;
+    }
+    
+    function transferFrom(address from, address to, uint tokens) public returns (bool success){
+        require(_balances[from] >= tokens);
+        require(to != address(0));
+
+        _balances[from] = _balances[from].sub(tokens);
+        _balances[to] = _balances[to].add(tokens);
+
+        _allowed[from][msg.sender] = _allowed[from][msg.sender].sub(tokens);
+
+        emit Transfer(from, to, tokens);
+
+        return true;
+    }
+}
+
+contract MintableToken is BasicToken{
+    string public constant _name = "TCoin";
+    string public constant _symbol = "TCN";
+    uint8 public constant _decimals = 18;
 
     event Mint(address indexed to, uint tokens);
-    event Transfer(address indexed from, address indexed to, uint tokens);
 
     function mint(address to, uint tokens) onlyOwner public {
         balances[to] = balances[to].add(tokens);
-        totalSupply = totalSupply.add(tokens);
+        _totalSupply = _totalSupply.add(tokens);
 
         emit Mint(to, tokens);
-    }
-
-
-    function transfer(address to, uint tokens) public {
-        require(balances[msg.sender] >= tokens);
-        require(to != address(0));
-
-        balances[msg.sender] = balances[msg.sender].sub(tokens);
-        balances[to] = balances[to].add(tokens);
-
-        emit Transfer(msg.sender, to, tokens);
     }
 }
