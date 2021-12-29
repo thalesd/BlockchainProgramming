@@ -1,4 +1,4 @@
-pragma solidity 0.8.10;
+pragma solidity ^0.8.10;
 
 library SafeMath{
     function add(uint a, uint b) internal pure returns(uint){
@@ -42,7 +42,7 @@ library SafeMath{
     }
 }
 
-contract Ownable {
+abstract contract Ownable {
     address payable public owner;
 
     event OwnershipTransferred(address newOwner);
@@ -63,19 +63,23 @@ contract Ownable {
     }
 }
 
-abstract contract ERC20 {
-    function totalSupply() public virtual view returns (uint);
-    function balanceOf(address tokenOwner) public virtual view returns (uint balance);
-    function allowance(address tokenOwner, address spender) public virtual view returns (uint remaining);
-    function transfer(address to, uint tokens) public virtual returns (bool success);
-    function approve(address spender, uint tokens) public virtual returns (bool success);
-    function transferFrom(address from, address to, uint tokens) public virtual returns (bool success);
+interface ERC20 {
+    function totalSupply() external view returns (uint);
+    function balanceOf(address tokenOwner) external view returns (uint balance);
+    function allowance(address tokenOwner, address spender) external view returns (uint remaining);
+    function transfer(address to, uint tokens) external returns (bool success);
+    function approve(address spender, uint tokens) external returns (bool success);
+    function transferFrom(address from, address to, uint tokens) external returns (bool success);
 
     event Transfer(address indexed from, address indexed to, uint tokens);
     event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
 }
 
-contract BasicToken is Ownable, ERC20 {
+interface BEP20 {
+
+}
+
+contract BasicToken is Ownable, ERC20, BEP20 {
     using SafeMath for uint;
 
     uint internal _totalSupply;
